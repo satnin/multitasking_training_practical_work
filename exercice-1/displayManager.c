@@ -20,10 +20,12 @@ static void *display( void *parameters );
 
 void displayManagerInit(void){
 	//TODO
+	pthread_create(&displayThread, NULL, display, NULL);
 }
 
 void displayManagerJoin(void){
 	//TODO	
+	pthread_join(displayThread, NULL);
 } 
 
 static void *display( void *parameters )
@@ -33,6 +35,8 @@ static void *display( void *parameters )
 	while(diffCount < DISPLAY_LOOP_LIMIT){
 		sleep(DISPLAY_SLEEP_TIME);
 		//TODO
+		unsigned int i = getProducedCount();
+		printf("Produced : %u\n", i);
 	}
 	printf("[displayManager] %d termination\n", gettid());
    //TODO
