@@ -37,9 +37,9 @@ static void *display( void *parameters )
 		sleep(DISPLAY_SLEEP_TIME);
 		//TODO*
 		diffCount++;
-		MSG_BLOCK msg = getCurrentSum();
+		unsigned int c;
+		MSG_BLOCK msg = getCurrentSum(&c);
 		messageDisplay(&msg);
-		unsigned int c = getConsumedCount();
 		print(getProducedCount(), c);
 	}
 	printf("[displayManager] %d termination\n", gettid());

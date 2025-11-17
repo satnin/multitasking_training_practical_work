@@ -33,10 +33,13 @@ static void incrementConsumeCount(void)
 static void *sum( void *parameters );
 
 
-MSG_BLOCK getCurrentSum(){
+MSG_BLOCK getCurrentSum(unsigned int * pconsumed){
 	//TODO
 	pthread_mutex_lock(&mut_out);
 	MSG_BLOCK msg = out;
+	if(pconsumed) {
+		*pconsumed = getConsumedCount();
+	}
 	pthread_mutex_unlock(&mut_out);
 	return msg;
 }
@@ -84,28 +87,17 @@ static void *sum( void *parameters )
 			else{
 				messageAdd(&msg, &new_msg);
 			}
-			incrementConsumeCount();
 			++j;
 			if(j == PRODUCER_COUNT){
 				pthread_mutex_lock(&mut_out);
+				incrementConsumeCount();
 				out = msg;
 				pthread_mutex_unlock(&mut_out);
 			}
+			else{
+				incrementConsumeCount();
+			}
 		}
-		
-		
-
-		// unsigned int j = 4;
-		// while (--j)
-		// {
-			
-		// 	pthread_mutex_lock(&mut_out);
-		// 	messageAdd(&out, &new_msg);
-		// 	pthread_mutex_unlock(&mut_out);
-		// 	incrementConsumeCount();
-			
-		// }
-		
 	}
 	printf("[messageAdder] %d termination\n", gettid());
 	//TODO
