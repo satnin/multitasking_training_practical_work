@@ -61,37 +61,55 @@ void messageAdderInit(void){
 void messageAdderJoin(void){
 	//TODO
 	pthread_join(consumer, NULL);
+	pthread_mutex_destroy(&mut_out);
 }
 
 static void *sum( void *parameters )
 {
 	D(printf("[messageAdder]Thread created for sum with id %d\n", gettid()));
 	unsigned int i = 0;
-	while(i<ADDER_LOOP_LIMIT){
+	
+	while(i<(ADDER_LOOP_LIMIT/PRODUCER_COUNT)){
 		i++;
-		sleep(ADDER_SLEEP_TIME);
+		//sleep(ADDER_SLEEP_TIME);
 		//TODO
+		MSG_BLOCK msg;
 		MSG_BLOCK new_msg;
-		pthread_mutex_lock(&mut_out);
-		out = getMessage();
-		pthread_mutex_unlock(&mut_out);
-		incrementConsumeCount();
-
-		unsigned int j = 4;
-		while (--j)
-		{
+		unsigned int j = 0;
+		while (j < PRODUCER_COUNT){
 			new_msg = getMessage();
-			pthread_mutex_lock(&mut_out);
-			messageAdd(&out, &new_msg);
-			pthread_mutex_unlock(&mut_out);
+			if(j==0){
+				msg = new_msg;
+			}
+			else{
+				messageAdd(&msg, &new_msg);
+			}
 			incrementConsumeCount();
-			
+			++j;
+			if(j == PRODUCER_COUNT){
+				pthread_mutex_lock(&mut_out);
+				out = msg;
+				pthread_mutex_unlock(&mut_out);
+			}
 		}
+		
+		
+
+		// unsigned int j = 4;
+		// while (--j)
+		// {
+			
+		// 	pthread_mutex_lock(&mut_out);
+		// 	messageAdd(&out, &new_msg);
+		// 	pthread_mutex_unlock(&mut_out);
+		// 	incrementConsumeCount();
+			
+		// }
 		
 	}
 	printf("[messageAdder] %d termination\n", gettid());
 	//TODO
-	pthread_exit(NULL);
+	return NULL;
 }
 
 

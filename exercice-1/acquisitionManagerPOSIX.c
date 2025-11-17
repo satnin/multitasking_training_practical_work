@@ -170,6 +170,13 @@ void acquisitionManagerJoin(void)
 	}
 
 	//TODO
+	pthread_mutex_destroy(&mut_produceCount);
+	pthread_mutex_destroy(&mut_w_readable_idx);
+	pthread_mutex_destroy(&mut_w_writable_idx);
+
+	sem_destroy(&sem_read);
+	sem_destroy(&sem_write);
+
 	printf("[acquisitionManager]Semaphore cleaned\n");
 }
 
@@ -192,5 +199,5 @@ void *produce(void* params)
 	}
 	printf("[acquisitionManager] %d termination\n", gettid());
 	//TODO
-	pthread_exit(NULL);
+	return NULL;
 }

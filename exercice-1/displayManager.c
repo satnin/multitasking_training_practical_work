@@ -35,7 +35,8 @@ static void *display( void *parameters )
 	unsigned int diffCount = 0;
 	while(diffCount < DISPLAY_LOOP_LIMIT){
 		sleep(DISPLAY_SLEEP_TIME);
-		//TODO
+		//TODO*
+		diffCount++;
 		MSG_BLOCK msg = getCurrentSum();
 		messageDisplay(&msg);
 		unsigned int c = getConsumedCount();
@@ -43,5 +44,5 @@ static void *display( void *parameters )
 	}
 	printf("[displayManager] %d termination\n", gettid());
    //TODO
-   pthread_exit(NULL);
+   return NULL;
 }
