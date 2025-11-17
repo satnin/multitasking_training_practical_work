@@ -10,10 +10,11 @@
 #include "multitaskingAccumulator.h"
 #include "iAcquisitionManager.h"
 #include "debug.h"
+#include <stdatomic.h>
 
 
 //producer count storage
-volatile unsigned int produceCount = 0;
+_Atomic volatile unsigned int produceCount = 0;
 
 
 pthread_t producers[4];
@@ -25,7 +26,7 @@ static void *produce(void *params);
 */
 //TODO
 sem_t sem_read, sem_write;
-pthread_mutex_t mut_w_writable_idx, mut_w_readable_idx, mut_produceCount;
+pthread_mutex_t mut_w_writable_idx, mut_w_readable_idx;
 
 
 #define BUFFER_SIZE 10
@@ -59,10 +60,7 @@ static unsigned int createSynchronizationObjects(void)
 	{
 		return ERROR_INIT;
 	}
-	if(pthread_mutex_init(&mut_produceCount, NULL)) 
-	{
-		return ERROR_INIT;
-	}
+	
 	if(sem_init(&sem_read, NULL, 0)) 
 	{
 		return ERROR_INIT;
@@ -95,19 +93,12 @@ static unsigned int createSynchronizationObjects(void)
 static void incrementProducedCount(void)
 {
 	//TODO
-	pthread_mutex_lock(&mut_produceCount);
 	++produceCount;
-	pthread_mutex_unlock(&mut_produceCount);
 }
 
 unsigned int getProducedCount(void)
 {
-	unsigned int p = 0;
-	//TODO - DONE
-	pthread_mutex_lock(&mut_produceCount);
-	p = produceCount;
-	pthread_mutex_unlock(&mut_produceCount);
-	return p;
+	return produceCount;
 }
 static void write_data(MSG_BLOCK * msg)
 {
@@ -170,7 +161,6 @@ void acquisitionManagerJoin(void)
 	}
 
 	//TODO
-	pthread_mutex_destroy(&mut_produceCount);
 	pthread_mutex_destroy(&mut_w_readable_idx);
 	pthread_mutex_destroy(&mut_w_writable_idx);
 
