@@ -38,7 +38,8 @@ static void *display( void *parameters )
 		//TODO
 		MSG_BLOCK msg = getCurrentSum();
 		messageDisplay(&msg);
-		print(getProducedCount(), getConsumedCount());
+		unsigned int c = getConsumedCount();
+		print(getProducedCount(), c);
 	}
 	printf("[displayManager] %d termination\n", gettid());
    //TODO
