@@ -28,6 +28,7 @@ void displayManagerJoin(void){
 	pthread_join(displayThread, NULL);
 } 
 
+
 static void *display( void *parameters )
 {
 	D(printf("[displayManager]Thread created for display with id %d\n", gettid()));
@@ -35,9 +36,11 @@ static void *display( void *parameters )
 	while(diffCount < DISPLAY_LOOP_LIMIT){
 		sleep(DISPLAY_SLEEP_TIME);
 		//TODO
-		unsigned int i = getProducedCount();
-		printf("Produced : %u\n", i);
+		MSG_BLOCK msg = getCurrentSum();
+		messageDisplay(&msg);
+		print(getProducedCount(), getConsumedCount());
 	}
 	printf("[displayManager] %d termination\n", gettid());
    //TODO
+   pthread_exit(NULL);
 }
