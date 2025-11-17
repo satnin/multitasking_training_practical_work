@@ -102,8 +102,11 @@ static void incrementProducedCount(void)
 
 unsigned int getProducedCount(void)
 {
-	// unsigned int p = 0;
+	unsigned int p = 0;
 	//TODO - DONE
+	pthread_mutex_lock(&mut_produceCount);
+	p = produceCount;
+	pthread_mutex_unlock(&mut_produceCount);
 	return produceCount;
 }
 static void write_data(MSG_BLOCK * msg)
@@ -181,9 +184,13 @@ void *produce(void* params)
 		//TODO
 		MSG_BLOCK msg;
 		getInput((unsigned int)params, &msg);
-		write_data(&msg);
-		incrementProducedCount();
+		if(messageCheck(&msg))
+		{
+			write_data(&msg);
+			incrementProducedCount();
+		}
 	}
 	printf("[acquisitionManager] %d termination\n", gettid());
 	//TODO
+	pthread_exit(NULL);
 }
