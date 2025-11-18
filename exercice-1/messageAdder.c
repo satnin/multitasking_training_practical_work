@@ -72,32 +72,17 @@ static void *sum( void *parameters )
 	D(printf("[messageAdder]Thread created for sum with id %d\n", gettid()));
 	unsigned int i = 0;
 	
-	while(i<(ADDER_LOOP_LIMIT/PRODUCER_COUNT)){
+	while(i<(ADDER_LOOP_LIMIT)){
 		i++;
 		//sleep(ADDER_SLEEP_TIME);
 		//TODO
-		MSG_BLOCK msg;
-		MSG_BLOCK new_msg;
+		MSG_BLOCK new_msg = getMessage();
 		unsigned int j = 0;
-		while (j < PRODUCER_COUNT){
-			new_msg = getMessage();
-			if(j==0){
-				msg = new_msg;
-			}
-			else{
-				messageAdd(&msg, &new_msg);
-			}
-			++j;
-			if(j == PRODUCER_COUNT){
-				pthread_mutex_lock(&mut_out);
-				incrementConsumeCount();
-				out = msg;
-				pthread_mutex_unlock(&mut_out);
-			}
-			else{
-				incrementConsumeCount();
-			}
-		}
+		pthread_mutex_lock(&mut_out);
+		incrementConsumeCount();
+		messageAdd(&out, &new_msg);
+		pthread_mutex_unlock(&mut_out);
+			
 	}
 	printf("[messageAdder] %d termination\n", gettid());
 	//TODO
