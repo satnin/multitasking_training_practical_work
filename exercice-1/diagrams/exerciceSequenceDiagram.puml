@@ -1,0 +1,262 @@
+@startuml
+!pragma teoz true
+box "terminal process"
+participant bash
+  box "multitaskingAccumulator process  (child process)"  #green
+    participant "main" as main
+  end box
+  box "AcquisitionManager" #lightblue
+    participant AcquisitionManager as "AcquisitionManager"
+    participant prod as "Producer[4] : pthread_t"
+    participant data as "Buffer: MSG_BLOCK[BUFFER_SIZE]"
+    participant mutp as " mut_produceCount : pthread_mutex_t"
+    participant mutw as "mut_w_writable_idx : pthread_mutex_t"
+    participant mutr as "mut_w_readable_idx : pthread_mutex_t"
+    participant semr as "sem_read : sem_t(0)"
+    participant semw as "sem_write : sem_t(BUFFER_SIZE)"
+    participant writables as "writables : unsigned int[BUFFER_SIZE]"
+    participant readables as "readables : unsigned int[BUFFER_SIZE]"
+    participant index_write as "next_w_writable_idx : unsigned int"
+    participant index_read as "next_w_readable_idx : unsigned int"
+    participant produceCount as "produceCount : unsigned int"
+  end box
+  box "MessageAdder" #orange
+    participant messageAdder as "messageAdder"
+    participant consumer as "consumer : pthread_t"
+    participant out as "out : MSG_BLOCK"
+    participant consumeCount as "consumeCount : unsigned int"
+    participant mut_out as "mut_out : pthread_mutex_t"
+  end box
+  box "DisplayManager" #yellow
+    participant displayManager as "displayManager"
+    participant displayThread as "displayThread : pthread_t"
+  end box
+end box
+
+
+activate bash
+bash -> main --++ : "./multitaskingAccumulatorPosix"
+
+main -> AcquisitionManager: acquisitionManagerInit()
+activate AcquisitionManager
+AcquisitionManager -> mutr : pthread_mutex_init(&mut_w_readable_idx)
+AcquisitionManager -> mutw : pthread_mutex_init(&mut_w_writable_idx)
+AcquisitionManager -> mutp : pthread_mutex_init(&mut_produceCount)
+AcquisitionManager -> semr : sem_init(&sem_read)
+AcquisitionManager -> semw : sem_init(&sem_write)
+AcquisitionManager -> writables : "Initialisation du tableau des indices"
+AcquisitionManager -> readables : "Initialisation du tableau des indices"
+AcquisitionManager -> prod : pthread_create(produce)
+activate prod #FFBBBB
+
+prod -> AcquisitionManager : write_data
+
+note over AcquisitionManager : Debut write_data
+AcquisitionManager -> semw : sem_wait()
+activate semw #plum
+return
+
+AcquisitionManager -> mutw : pthread_mutex_lock()
+activate mutw #plum
+return
+
+AcquisitionManager -> index_write : incrementer
+activate index_write #gold
+return
+
+AcquisitionManager -> mutw : pthread_mutex_unlock()
+activate mutw #plum
+return
+
+AcquisitionManager -> data : Ecriture message
+activate data #green
+return
+
+AcquisitionManager -> mutr : pthread_mutex_lock()
+activate mutr #plum
+return
+
+AcquisitionManager -> index_read : incrementer
+activate index_read #gold
+return
+
+AcquisitionManager -> mutr : pthread_mutex_unlock()
+activate mutr #plum
+return
+
+AcquisitionManager -> readables : Index Mis a jour
+activate readables #darkblue
+return
+
+AcquisitionManager -> semr : sem_post()
+activate semr #plum
+return
+
+AcquisitionManager -> prod : return
+note over AcquisitionManager : Fin write_data
+
+
+prod -> AcquisitionManager : incrementProducedCount()
+
+note over AcquisitionManager : Debut incrementProducedCount
+AcquisitionManager -> mutp : pthread_mutex_lock()
+activate mutp #plum
+return
+
+AcquisitionManager -> produceCount : incrementer
+activate produceCount #yellow
+return
+
+AcquisitionManager -> mutp : pthread_mutex_unlock()
+activate mutp #plum
+return
+
+AcquisitionManager -> prod : return
+note over AcquisitionManager : Fin incrementProducedCount
+deactivate prod
+deactivate AcquisitionManager
+
+main -> messageAdder: messageAdderInit()
+activate  messageAdder
+messageAdder -> mut_out : pthread_mutex_init()
+messageAdder -> consumer : pthread_create()
+activate consumer #FFBBBB
+
+consumer -> mut_out : pthread_mutex_lock()
+activate mut_out #plum
+return
+
+consumer -> AcquisitionManager : getMessage()
+activate AcquisitionManager
+
+note over AcquisitionManager : Debut getMessage
+AcquisitionManager -> semr : sem_wait()
+activate semr #plum
+return
+
+AcquisitionManager -> index_read : Incrementer
+activate index_read #yellow
+return
+
+AcquisitionManager -> data : Lecture Message
+activate data #green
+return
+
+AcquisitionManager -> writables : Indice Mis a jour
+activate writables #orange
+return
+
+AcquisitionManager -> index_write : Incrementer
+activate index_write #yellow
+return
+
+AcquisitionManager -> semw : sem_post()
+activate semw #plum
+return
+
+AcquisitionManager -> consumer : return
+note over AcquisitionManager : Fin getMessage
+deactivate AcquisitionManager
+
+consumer -> out : Recuperation Message
+activate out #red
+return
+
+consumer -> mut_out : pthread_mutex_unlock()
+activate mut_out #plum
+return
+
+consumer -> consumeCount : incrementConsumeCount();
+activate consumeCount #green
+return
+
+consumer -> messageAdder : return
+deactivate consumer
+deactivate messageAdder
+
+main -> displayManager : displayManagerInit()
+activate displayManager
+
+displayManager -> displayThread : pthread_create()
+activate displayThread #FFBBBB
+
+displayThread -> messageAdder : getCurrentSum()
+activate messageAdder
+
+messageAdder -> mut_out : pthread_mutex_lock()
+activate mut_out #plum
+return
+
+messageAdder -> out : Recuperation Message
+activate out #red
+return
+
+messageAdder -> consumeCount : getConsumedCount()
+activate consumeCount #green
+return
+
+messageAdder -> mut_out : pthread_mutex_unlock()
+activate mut_out #plum
+return
+
+messageAdder -> displayThread : return msg
+deactivate messageAdder
+
+displayThread -> displayManager : return
+deactivate displayThread
+deactivate displayManager
+
+main -> displayManager : displayManagerJoin()
+activate displayManager
+
+displayManager -> displayThread : pthread_join()
+activate displayThread #black
+return
+deactivate displayManager
+
+
+main -> messageAdder : messageAdderJoin()
+activate messageAdder
+
+messageAdder -> consumer : pthread_join()
+activate consumer #black
+return
+
+messageAdder -> mut_out : pthread_mutex_destroy()
+activate mut_out #white
+return
+deactivate messageAdder
+
+main -> AcquisitionManager : acquisitionManagerJoin()
+activate AcquisitionManager
+
+AcquisitionManager -> prod : pthread_join()
+activate prod #black
+return
+
+AcquisitionManager -> mutp : pthread_mutex_destroy()
+activate mutp #white
+return
+
+AcquisitionManager -> mutr : pthread_mutex_destroy()
+activate mutr #white
+return
+
+AcquisitionManager -> mutw : pthread_mutex_destroy()
+activate mutw #white
+return
+
+AcquisitionManager -> semr : sem_destroy()
+activate semr #white
+return
+
+AcquisitionManager -> semw : sem_destroy()
+activate semw #white
+return
+deactivate AcquisitionManager
+
+
+main -> bash : exit(EXIT_SUCCESS)
+
+
+@enduml

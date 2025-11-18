@@ -1,6 +1,5 @@
 @startuml
 
-dataclass MSG_BLOCK
 
 class MultitaskingAccumulator
 MultitaskingAccumulator : + main()
@@ -13,22 +12,39 @@ IAcquisitionManager : + getProducedCount(): Integer
 IAcquisitionManager : + getMessage():MSG_BLOCK
 
 class AcquisitionManager
+AcquisitionManager : - BUFFER_SIZE : 10
+AcquisitionManager : - data[BUFFER_SIZE]: MSG_BLOCK
+AcquisitionManager : - sem_read: sem_t
+AcquisitionManager : - sem_write: sem_t
+AcquisitionManager : - mut_w_writable_idx: pthread_mutex_t
+AcquisitionManager : - mut_w_readable_idx: pthread_mutex_t
+AcquisitionManager : - mut_produceCount: pthread_mutex_t
+AcquisitionManager : - readables[BUFFER_SIZE]: unsigned int
+AcquisitionManager : - writables[BUFFER_SIZE]: unsigned int
+AcquisitionManager : - next_w_readable_idx: unsigned int
+AcquisitionManager : - next_w_writable_idx: unsigned int
+AcquisitionManager : - next_r_readable_idx: unsigned int
+AcquisitionManager : - next_r_writable_idx: unsigned int
 AcquisitionManager : - producers[4]: pthread_t
-AcquisitionManager : - m1: pthread_mutex_t
 AcquisitionManager : - producedCount: Integer
 AcquisitionManager : - produce()
+AcquisitionManager : - write_data(MSG_BLOCK* msg)
+AcquisitionManager : - CreateSynchronizationObject()
+AcquisitionManager : - incrementProducedCount()
 AcquisitionManager : + acquisitionManagerInit()
 AcquisitionManager : + acquisitionManagerJoin()
 
 interface IMessageAdder
 IMessageAdder : + getCurrentSum(): MSG_BLOCK
-IMessageAdder : + getConsumedCount(): Integer
+IMessageAdder : + getConsumedCount(unsigned int* consumed): Integer
 
 class MessageAdder
 MessageAdder : - consumer: pthread_t
-MessageAdder : - currentSum: MSG_BLOCK
+MessageAdder : - out: MSG_BLOCK
 MessageAdder : - consumedCount: Integer
+MessageAdder : - mut_out: pthread_mutex_t
 MessageAdder : - sum()
+MessageAdder : - incrementConsumedCount()
 MessageAdder : + messageAdderInit()
 MessageAdder : + messageAdderJoin()
 
@@ -41,7 +57,7 @@ IDisplay : + messageDisplay(MSG_BLOCK mBlock)
 IDisplay : + print(Integer producedCount, Integer consumedCount)
 
 class DisplayManager
-DisplayManager : - display: pthread_t
+DisplayManager : - displayThread: pthread_t
 DisplayManager : - display()
 DisplayManager : + displayManagerInit()
 DisplayManager : + displayManagerJoin()
