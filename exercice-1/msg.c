@@ -28,10 +28,11 @@ unsigned int messageCheck(volatile MSG_BLOCK* mBlock){
 	for(i=0;i < DATA_SIZE;i++)
 		tcheck ^= mBlock->mData[i];
 	if(tcheck == mBlock->checksum){
-		printf("[OK      ] Checksum validated\n");
+		D(printf("[OK      ] Checksum validated\n"));
 		return 1;
 	}else{
-		printf("[  FAILED] Checksum failed, message corrupted\n");
+	pthread_exit(NULL);
+		D(printf("[  FAILED] Checksum failed, message corrupted\n"));
 		return 0;
 	}
 }

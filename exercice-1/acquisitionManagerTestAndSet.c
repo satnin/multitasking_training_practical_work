@@ -14,7 +14,8 @@
 
 
 //producer count storage
-volatile unsigned int produceCount = 0;
+unsigned int produceCount = 0;
+_Atomic int lock = 0;
 
 
 pthread_t producers[4];
@@ -90,24 +91,34 @@ static unsigned int createSynchronizationObjects(void)
 	return ERROR_SUCCESS;
 }
 
+static void pCountLockTake(){
+	unsigned int expected = 0;
+	while(!atomic_compare_exchange_weak(&lock, &expected, 1))
+		expected=0;
+}
+static void pCountLockRelease(){
+	unsigned int expected = 1;
+	while(!atomic_compare_exchange_weak(&lock, &expected, 0))
+		expected=1;
+}
+
 static void incrementProducedCount(void)
 {
 	//TODO
-	unsigned int p;
-	do{
-		p=produceCount;
-	} while(!atomic_compare_exchange_weak(&produceCount, &p, p + 1));
+	pCountLockTake();
+	++produceCount;
+	pCountLockRelease();
 }
 
 unsigned int getProducedCount(void)
 {
 	unsigned int p;
-	do{
-		p = produceCount;
-	} while(!atomic_compare_exchange_weak(&produceCount, &p, p));
-	
-	return produceCount;
+	pCountLockTake();
+	p = produceCount;
+	pCountLockRelease();
+	return p;
 }
+
 static void write_data(MSG_BLOCK * msg)
 {
 	sem_wait(&sem_write);
